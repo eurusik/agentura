@@ -32,8 +32,9 @@ const TEMPLATE = `
   </div>
   <div class="stats muted"></div>`;
 
-// onEnd викликається, коли ти догортав до останнього кадру завершеного запуску
-export function createPlayer(container, onEnd) {
+// onEnd викликається, коли ти догортав до останнього кадру завершеного запуску;
+// onFrame — щоразу, коли показуємо кадр (крок малює під ним панелі на момент цього кадру)
+export function createPlayer(container, onEnd, onFrame) {
   const el = document.createElement("div");
   el.className = "player";
   el.innerHTML = TEMPLATE;
@@ -97,6 +98,7 @@ export function createPlayer(container, onEnd) {
     const frame = player.frames[player.index];
     drawActors(frame);
     drawFrame(frame);
+    onFrame?.(frame);
     const isLast = player.index >= player.frames.length - 1;
     el.querySelector(".dots").innerHTML = player.frames
       .map((_, k) => `<i class="${k === player.index ? "on" : k < player.index ? "seen" : ""}"></i>`)

@@ -26,6 +26,7 @@ export function createAgentFolder(player) {
       // Код знову віддав агенту ту саму задачу
       if (repeat) {
         repeat.count++;
+        repeat.state = frame.state;
         sayRepeat();
         held = []; // ті самі дії коду, що й минулого разу, — не показуємо
         player.draw();
@@ -37,6 +38,7 @@ export function createAgentFolder(player) {
         title: "Та сама задача ще раз",
         count: 2,
         task,
+        state: frame.state,
         why: "Агент цю задачу вже брав. Код цього не пам'ятає, тому бере її знову, а з нею і нові виклики моделі.",
       };
       sayRepeat();
@@ -55,6 +57,7 @@ export function createAgentFolder(player) {
       kind: "model",
       title: "Агент працює над задачею",
       inner: [],
+      state: frame.state,
       why: "Це той самий цикл з уроку 1: модель просить, код виконує, результат іде назад. Тут він згорнутий в один кадр. Розгорни, щоб подивитись кожне коло.",
     };
     player.push(group);
@@ -117,6 +120,7 @@ export function createAgentFolder(player) {
       return;
     }
     codeFrame.inner.push(frame);
+    codeFrame.state = frame.state;
     codeFrame.title = CODE_TITLES[source] ?? "Код сам робить кілька дій";
     codeFrame.say = codeFrame.inner.map((f) => `• ${f.title}`).join("<br>");
     codeFrame.why = "Це робить код, без моделі. Розгорни, щоб побачити відповідь на кожну дію.";
@@ -134,6 +138,13 @@ export function createAgentFolder(player) {
         }
       }
       group.inner.push(frame);
+      // Кадр агента показує стан на кінець його роботи; повтор — на кінець останнього разу
+      if (group.swallowed) {
+        if (repeat) repeat.state = frame.state;
+        player.draw();
+      } else {
+        group.state = frame.state;
+      }
       if (!group.swallowed) {
         describeGroup();
         player.draw();
@@ -152,6 +163,7 @@ export function createAgentFolder(player) {
     codeFrame = null;
     if (repeat && held.length && frame.kind === "bad") {
       repeat.count++; // код устиг узяти задачу ще раз, а далі його зупинили
+      repeat.state = frame.state;
       sayRepeat();
       held = [];
     }

@@ -101,7 +101,7 @@ export function renderStep(lesson, index, parent, onNext) {
   stopButton.onclick = () => {
     stopWorker();
     if (!player) return;
-    framesFor({ type: "error", stopped: true }, ctx).forEach((frame) => pushFrame(frame));
+    framesFor({ type: "error", stopped: true }, ctx).forEach((frame) => pushFrame(stamp(frame)));
     finishRun();
   };
 
@@ -111,7 +111,15 @@ export function renderStep(lesson, index, parent, onNext) {
     out.innerHTML = "";
     ctx = { calls: 0, tokens: [], cost: 0, mode, loop: null, describe: lesson.describe };
     panelState = {};
-    player = createPlayer(out, showAfterRun);
+    // Панелі (дошка, файли, git) показують стан на момент кадру, який зараз видно,
+    // тож гортаючи кадри, бачиш, як він змінювався
+    let drawnState = null;
+    player = createPlayer(out, showAfterRun, (frame) => {
+      const state = frame?.state ?? panelState;
+      if (state === drawnState) return; // той самий стан — не перемальовуємо, щоб не згортались розгорнуті деталі
+      drawnState = state;
+      drawPanels(out, step.panels, state);
+    });
     // Цикл агента вже знайомий? Тоді показуємо крупніше (див. agent-fold.js)
     pushFrame = (step.foldAgent ?? lesson.foldAgent) ? createAgentFolder(player) : pushFolded;
     player.live = mode === "real";
@@ -123,25 +131,29 @@ export function renderStep(lesson, index, parent, onNext) {
     const limitSeconds = mode === "real" ? 180 : 30;
     timeout = setTimeout(() => {
       stopWorker();
-      player.push({
-        actor: "code",
-        kind: "bad",
-        title: "Зупинено",
-        say: `Програма працювала понад ${limitSeconds} секунд.`,
-      });
+      player.push(
+        stamp({
+          actor: "code",
+          kind: "bad",
+          title: "Зупинено",
+          say: `Програма працювала понад ${limitSeconds} секунд.`,
+        }),
+      );
       finishRun();
     }, limitSeconds * 1000);
 
     worker.onmessage = ({ data: event }) => {
       // Події про стан пісочниці (файли, трекер…) оновлюють панелі під кодом
       if (STATE_EVENTS[event.type]) {
+        // Новий об'єкт стану: старі кадри зберігають свій
+        panelState = { ...panelState };
         STATE_EVENTS[event.type](panelState, event);
-        drawPanels(out, step.panels, panelState);
+        if (!player.frames.length) player.draw(); // кадрів ще немає — показуємо стан на старті
         return;
       }
       if (mode === "real") player.setWaiting(event.type === "request");
       if (event.type === "reply" && event.cost) ctx.cost += event.cost;
-      framesFor(event, ctx).forEach((frame) => pushFrame(frame));
+      framesFor(event, ctx).forEach((frame) => pushFrame(stamp(frame)));
       if (event.type === "done" || event.type === "error") {
         stopWorker();
         finishRun();
@@ -182,7 +194,13 @@ export function renderStep(lesson, index, parent, onNext) {
         : fixed
           ? (step.fixInsight ?? step.insight)
           : step.insight;
-    pushFrame({ actor: "code", kind: "end", title: "Що ми щойно побачили", say: summary });
+    pushFrame(stamp({ actor: "code", kind: "end", title: "Що ми щойно побачили", say: summary }));
+  }
+
+  // Кадр запам'ятовує, який вигляд мала пісочниця, коли він з'явився
+  function stamp(frame) {
+    frame.state = panelState;
+    return frame;
   }
 
   // ---------- згортання циклу: після 3 однакових прохань решту кола показуємо одним кадром
@@ -197,6 +215,7 @@ export function renderStep(lesson, index, parent, onNext) {
       if (sameLoop) {
         if (isRequest(frame)) {
           loop.folded.count++;
+          loop.folded.state = frame.state;
           loop.folded.say = `Модель знову і знову просить те саме: ще <b>${timesCount(loop.folded.count)}</b> поспіль.`;
           player.draw();
         }
@@ -217,6 +236,7 @@ export function renderStep(lesson, index, parent, onNext) {
           title: "Цикл повторюється",
           count: 0,
           say: "Модель знову і знову просить те саме.",
+          state: frame.state,
           why: "З кожним колом розмова довшає, і кожен наступний виклик дорожчий. Подивись на лічильник токенів унизу.",
         };
         player.push(loop.folded);
