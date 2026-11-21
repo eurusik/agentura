@@ -111,7 +111,7 @@ brew services start ollama</pre>
       <p><button class="primary" id="recheck">Перевірити ще раз</button></p>
     </main>
     <script type="module">
-      import { loadModelStatus, realModel } from "./app/model-status.js";
+      import { loadModelStatus, realModel, RUN_LOCALLY } from "./app/model-status.js";
       import { esc } from "./app/util.js";
 
       const status = document.getElementById("status");
@@ -121,6 +121,10 @@ brew services start ollama</pre>
         if (realModel.ready) {
           status.innerHTML = `Підключено: <b>${esc(realModel.label)}</b> · <code>${esc(realModel.model)}</code>. Можна повертатись до уроків.`;
           status.className = "ok-line";
+        } else if (realModel.noServer) {
+          // Онлайн-версія (GitHub Pages): сервера лабораторії немає, справжню модель тут не підключити
+          status.innerHTML = `<b>Ти зараз на онлайн-версії.</b> Справжню модель підключає сервер лабораторії, тому спершу запусти її у себе:${RUN_LOCALLY}Далі — один із варіантів нижче.`;
+          status.className = "online-note";
         } else {
           status.innerHTML = realModel.problem
             ? `Поки не підключено. ${esc(realModel.problem)}`

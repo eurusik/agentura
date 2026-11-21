@@ -26,6 +26,9 @@ function lessonRow(lesson) {
 }
 
 function modelLine() {
+  if (realModel.noServer) {
+    return 'Це онлайн-версія: уроки працюють на заготовлених відповідях. Щоб підключити справжню модель, <a href="setup.html">запусти лабораторію у себе</a>.';
+  }
   if (realModel.ready) {
     return `Справжня модель підключена: <b>${esc(realModel.label)}</b> · <code>${esc(realModel.model)}</code>. <a href="setup.html">Підключити іншу</a>`;
   }
