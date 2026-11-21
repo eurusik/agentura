@@ -9,14 +9,15 @@ async function runTools(requests) {
   for (const request of requests) {
     try {
       let result;
-      if (tools[request.name]) {
-        // Файли дає лабораторія: запускаємо їх самі
-        result = await tools[request.name].run(request.input);
+      if (request.name.includes("__")) {
+        // У назві є ім'я сервера. git__branch означає
+        // «інструмент branch від сервера git». Розрізаємо назву навпіл
+        // і передаємо прохання цьому серверу вже з короткою назвою
+        const [serverName, toolName] = request.name.split("__");
+        result = await servers[serverName].callTool(toolName, request.input);
       } else {
-        // Решта прийшла від серверів. У таблиці owner (нижче) шукаємо,
-        // від якого саме, і передаємо прохання йому
-        const server = owner[request.name];
-        result = await server.callTool(request.name, request.input);
+        // Без префікса — файли від лабораторії: запускаємо їх самі
+        result = await tools[request.name].run(request.input);
       }
       results.push({
         type: "tool_result",
@@ -62,34 +63,32 @@ async function runAgent(task, toolList, instructions) {
   }
 }
 
-// Код бере першу задачу для агента і забирає її собі (урок 2)
-const [task] = tracker.list({ label: "agent", status: "todo" });
+// Код бере задачу T-7 і забирає її собі (урок 2)
+const task = tracker.get("T-7");
 tracker.update(task.id, { status: "in_progress", assignee: "агент" });
 
-// Підключаємось до сервера git, як у кроці 4.
-// Нове: трекер теж підключаємо як сервер
-const git = await mcp.connect("git");
+// Підключаємось до обох серверів і питаємо їхні інструменти
 const trackerServer = await mcp.connect("tracker");
-
-// Питаємо в обох серверів їхні інструменти (merge, як і раніше, викидаємо)
-const allGitTools = await git.listTools();
-const gitTools = allGitTools.filter((tool) => tool.name !== "merge");
+const gitServer = await mcp.connect("git");
 const trackerTools = await trackerServer.listTools();
+const gitTools = await gitServer.listTools();
 
-// Таблиця «інструмент → сервер, від якого він прийшов».
-// Наприклад, owner.branch — це сервер git. За нею runTools знає, кому
-// передати прохання моделі
-const owner = {};
-for (const tool of gitTools) owner[tool.name] = git;
-for (const tool of trackerTools) owner[tool.name] = trackerServer;
+// Нове: перед назвою кожного інструмента дописуємо ім'я сервера:
+// були два list, а стали tracker__list і git__list
+function withServerName(server, defs) {
+  return defs.map((def) => ({ ...def, name: `${server.name}__${def.name}` }));
+}
 
-// Від лабораторії тепер тільки файли. Усе інше — від серверів
+// Сервери за іменем: з префікса runTools дізнається ім'я і бере сервер звідси
+const servers = { tracker: trackerServer, git: gitServer };
+
 const toolList = [
   tools.read_file.def,
   tools.write_file.def,
-  ...trackerTools,
-  ...gitTools,
+  ...withServerName(trackerServer, trackerTools),
+  ...withServerName(gitServer, gitTools),
 ];
+// Інструкція з уроку 3
 const instructions =
   "Ти агент-розробник і виконуєш задачі з трекера. " +
   "Спершу створи гілку: agent/ і номер задачі, наприклад agent/T-1. " +

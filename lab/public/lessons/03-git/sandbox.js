@@ -1,7 +1,5 @@
-// Пісочниця уроку 3: файли маленького проєкту + трекер + міні-git + два MCP-сервери (git і tracker).
-// Що лабораторія дає кодові:
-//   tracker — трекер напряму, як в уроці 2;
-//   mcp     — підключення до серверів: mcp.connect("git"), mcp.connect("tracker").
+// Пісочниця уроку 3: файли маленького проєкту + трекер + міні-git.
+// Що лабораторія дає кодові: tracker — трекер напряму, як в уроці 2.
 // Інструменти для моделі в tools: файли, трекер (list_tasks…) і git (git_branch, git_commit, open_mr, merge_mr).
 // Цей модуль імпортують і worker (щоб запускати код), і сторінка (щоб описувати прохання людською мовою).
 import { createFileTools, describeFileRequest } from "../../runtime/file-tools.js";
@@ -12,7 +10,6 @@ import {
   describeTrackerRequest,
 } from "../../runtime/tracker.js";
 import { createRepo, createGitTools } from "../../runtime/git.js";
-import { createMcp } from "../../runtime/mcp.js";
 
 // ---------- файли проєкту на старті (шляхи відносно /work)
 export const FILES = {
@@ -43,7 +40,6 @@ const START_TASKS = [
 // ---------- що дає лабораторія кодові
 const STORE = Symbol("store");
 const REPO = Symbol("repo");
-const silent = () => {}; // інструменти сервера не звітують самі: про виклик розповідає MCP
 
 export function createGlobals(workspace, report) {
   const store = createTracker(START_TASKS, report);
@@ -57,27 +53,7 @@ export function createGlobals(workspace, report) {
     repo.reportRepo();
   };
 
-  // Сервер git називає свої інструменти по-своєму. І віддає всі, зокрема merge.
-  const gitTools = createGitTools(repo, silent, {
-    branch: "branch",
-    commit: "commit",
-    open_mr: "merge_request",
-    merge: "merge",
-    list: "list",
-  });
-
-  // Сервер трекера: ті самі дії, що й list_tasks…, але зі своїми назвами
-  const t = createTrackerTools(store, silent);
-  const rename = (tool, name) => ({ ...tool, def: { ...tool.def, name } });
-  const trackerTools = {
-    list: rename(t.list_tasks, "list"),
-    get: rename(t.get_task, "get"),
-    update: rename(t.update_task, "update"),
-    comment: rename(t.add_comment, "comment"),
-  };
-
-  const mcp = createMcp({ git: { tools: gitTools }, tracker: { tools: trackerTools } }, report);
-  return { tracker: createTrackerGlobal(store, report), mcp, [STORE]: store, [REPO]: repo };
+  return { tracker: createTrackerGlobal(store, report), [STORE]: store, [REPO]: repo };
 }
 
 // ---------- інструменти для моделі, які дає сама лабораторія

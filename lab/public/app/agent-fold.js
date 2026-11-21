@@ -84,11 +84,11 @@ export function createAgentFolder(player) {
 
   // Хто виконав інструменти: лабораторія чи MCP-сервер (з уроку 3)
   function whoRan() {
-    const runs = group.inner.filter((f) => f.tag === "tool" && f.json);
-    if (!runs.some((f) => f.json.server)) return "";
+    const runs = group.inner.filter((f) => f.tag === "tool" && f.event);
+    if (!runs.some((f) => f.event.server)) return "";
     const counts = {};
     for (const f of runs) {
-      const who = f.json.server ? `сервер ${f.json.server}` : "лабораторія";
+      const who = f.event.server ? `сервер ${f.event.server}` : "лабораторія";
       counts[who] = (counts[who] ?? 0) + 1;
     }
     const list = Object.entries(counts).map(([who, n]) => `${who} — ${timesCount(n)}`);
@@ -110,10 +110,10 @@ export function createAgentFolder(player) {
 
   // Дії коду з одним і тим самим (трекером або MCP-серверами) підряд зливаємо в один кадр.
   // Різне не змішуємо: розмова з MCP-серверами — окремий кадр, щоб її було видно
-  const CODE_TITLES = { tracker: "Код сам працює з трекером", mcp: "Код питає сервери про інструменти" };
+  const CODE_TITLES = { tracker: "Код сам працює з трекером", mcp: "Код підключається до серверів" };
 
   function pushCode(frame) {
-    const source = frame.json?.name;
+    const source = frame.event?.name;
     if (!codeFrame || codeFrame.source !== source) {
       codeFrame = { ...frame, inner: [frame], source };
       player.push(codeFrame);

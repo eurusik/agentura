@@ -10,19 +10,27 @@ export const STATUS_NAMES = {
   done: "Готово",
 };
 
+// В уроці 4 трекер навчився ще одного статусу. Інструменти лабораторії про нього не знають
+export const NEW_STATUS_NAMES = { ...STATUS_NAMES, blocked: "Заблоковано" };
+
 // ---------- стан задач і дії з ними
-export function createTracker(startTasks, report) {
+// statuses — які статуси знає сам трекер (за замовчуванням чотири)
+export function createTracker(startTasks, report, statuses = STATUS_NAMES) {
   const tasks = startTasks.map((task) => ({ assignee: null, comments: [], ...structuredClone(task) }));
   const find = (id) => tasks.find((task) => task.id === id);
 
   // Дошка під кодом перемальовується після кожної зміни; змінену задачу підсвічуємо
   const reportBoard = (changedId) =>
-    report({ type: "tracker", tasks: tasks.map((task) => ({ ...task, changed: task.id === changedId })) });
+    report({
+      type: "tracker",
+      statuses: Object.entries(statuses),
+      tasks: tasks.map((task) => ({ ...task, changed: task.id === changedId })),
+    });
 
   const describe = (task) =>
     [
       `${task.id}: ${task.title}`,
-      `Статус: ${task.status} (${STATUS_NAMES[task.status]})`,
+      `Статус: ${task.status} (${statuses[task.status]})`,
       `Мітки: ${task.labels.join(", ") || "немає"} · Виконавець: ${task.assignee ?? "ніхто"}`,
       `Опис: ${task.description}`,
       ...task.comments.map((c) => `Коментар від ${c.author}: ${c.text}`),
@@ -41,8 +49,8 @@ export function createTracker(startTasks, report) {
     },
     update(id, changes) {
       const task = store.get(id);
-      if (changes.status && !STATUS_NAMES[changes.status]) {
-        throw new Error(`статусу «${changes.status}» немає, є: ${Object.keys(STATUS_NAMES).join(", ")}`);
+      if (changes.status && !statuses[changes.status]) {
+        throw new Error(`статусу «${changes.status}» немає, є: ${Object.keys(statuses).join(", ")}`);
       }
       Object.assign(task, changes);
       reportBoard(id);
@@ -56,6 +64,7 @@ export function createTracker(startTasks, report) {
     },
     describe,
     reportBoard,
+    statuses,
   };
   return store;
 }
@@ -87,7 +96,7 @@ export function createTrackerGlobal(store, report) {
     update(id, changes) {
       const task = store.update(id, changes);
       const parts = [
-        changes.status && `статус → ${STATUS_NAMES[changes.status]}`,
+        changes.status && `статус → ${store.statuses[changes.status]}`,
         changes.assignee && `виконавець → ${changes.assignee}`,
       ].filter(Boolean);
       said(`Код оновлює ${id}: ${parts.join(", ")}`, store.describe(task), "Це робить код, без моделі.");
@@ -104,7 +113,8 @@ export function createTrackerGlobal(store, report) {
 // ---------- інструменти трекера для моделі
 const stringParam = { type: "string" };
 
-export function createTrackerTools(store, report) {
+// statuses — які статуси описані в інструменті. Може відставати від трекера (урок 4, крок 1)
+export function createTrackerTools(store, report, statuses = STATUS_NAMES) {
   const done = (name, input, output) => report({ type: "tool", name, input, output, ok: true });
   const failed = (name, input, error) => {
     report({ type: "tool", name, input, output: error.message, ok: false });
@@ -149,17 +159,21 @@ export function createTrackerTools(store, report) {
     update_task: {
       def: {
         name: "update_task",
-        description: "Change the status of a task. Status is one of: todo, in_progress, review, done.",
+        description: `Change the status of a task. Status is one of: ${Object.keys(statuses).join(", ")}.`,
         input_schema: {
           type: "object",
-          properties: { id: stringParam, status: { type: "string", enum: Object.keys(STATUS_NAMES) } },
+          properties: { id: stringParam, status: { type: "string", enum: Object.keys(statuses) } },
           required: ["id", "status"],
         },
       },
       run: async (input) => {
         try {
+          // Інструмент перевіряє статус за своїм списком, а не за трекером
+          if (!statuses[input.status]) {
+            throw new Error(`статусу «${input.status}» немає, є: ${Object.keys(statuses).join(", ")}`);
+          }
           store.update(input.id, { status: input.status });
-          const output = `${input.id} тепер у статусі ${input.status} (${STATUS_NAMES[input.status]})`;
+          const output = `${input.id} тепер у статусі ${input.status} (${statuses[input.status]})`;
           done("update_task", input, output);
           return output;
         } catch (error) {
@@ -200,7 +214,7 @@ export function describeTrackerRequest(name, input = {}, esc) {
   }
   if (name === "get_task") return `«Покажи задачу <code>${esc(input.id)}</code>»`;
   if (name === "update_task") {
-    return `«Переведи <code>${esc(input.id)}</code> у статус «${esc(STATUS_NAMES[input.status] ?? input.status)}»»`;
+    return `«Переведи <code>${esc(input.id)}</code> у статус «${esc(NEW_STATUS_NAMES[input.status] ?? input.status)}»»`;
   }
   if (name === "add_comment") return `«Напиши коментар до <code>${esc(input.id)}</code>: ${esc(input.text)}»`;
   return null;

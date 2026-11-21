@@ -140,6 +140,29 @@ export function createRepo(workspace, report) {
       reportRepo(id);
       return `${id} злито в main`;
     },
+    // Для сервера git: історія, дифф, гілки, теги
+    log() {
+      const list = [];
+      for (let c = tip(head); c; c = commitById(c.parent)) list.push(`${c.id} ${c.message} (${c.author})`);
+      return list.join("\n");
+    },
+    diff() {
+      const changes = diffSnapshots(tip("main").files, snapshot());
+      return (
+        Object.entries(changes)
+          .map(([file, lines]) => `${file}\n${lines.join("\n")}`)
+          .join("\n\n") || "змін відносно main немає"
+      );
+    },
+    branchList() {
+      return Object.keys(branches)
+        .map((name) => (name === head ? `* ${name}` : `  ${name}`))
+        .join("\n");
+    },
+    tag(name) {
+      if (!name) throw new Error("потрібна назва тегу");
+      return `тег ${name} поставлено на ${branches[head]}`;
+    },
     listMrs() {
       return (
         mrs.map((m) => `${m.id} [${m.status}] ${m.title} (${m.branch} → main)`).join("\n") ||
@@ -224,5 +247,40 @@ export function createGitTools(repo, report, names = {}) {
       },
       run: wrap(n.list, () => repo.listMrs()),
     },
+  };
+}
+
+// ---------- інструменти сервера git (урок 4): ті самі дії зі своїми назвами, і ще кілька.
+// Сервер віддає всі свої інструменти, зокрема merge, а що дати агенту, вирішує код агента.
+export function createGitServerTools(repo) {
+  const base = createGitTools(repo, () => {}, {
+    branch: "branch",
+    commit: "commit",
+    open_mr: "merge_request",
+    merge: "merge",
+    list: "list",
+  });
+  const tool = (name, description, properties, required, run) => ({
+    def: {
+      name,
+      description,
+      input_schema: { type: "object", properties, ...(required ? { required } : {}) },
+    },
+    run: async (input = {}) => run(input),
+  });
+  return {
+    ...base,
+    log: tool("log", "Show commit history of the current branch.", {}, null, () => repo.log()),
+    diff: tool("diff", "Show changes of the current branch compared to main.", {}, null, () => repo.diff()),
+    branches: tool("branches", "List branches; the current one is marked with *.", {}, null, () =>
+      repo.branchList(),
+    ),
+    tag: tool(
+      "tag",
+      "Put a tag (e.g. a version) on the last commit.",
+      { name: stringParam },
+      ["name"],
+      ({ name }) => repo.tag(name),
+    ),
   };
 }

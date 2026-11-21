@@ -5,7 +5,10 @@ import { esc } from "./util.js";
 // Яка подія з worker оновлює який стан
 export const STATE_EVENTS = {
   fs: (state, event) => (state.files = event.files),
-  tracker: (state, event) => (state.tasks = event.tasks),
+  tracker: (state, event) => {
+    state.tasks = event.tasks;
+    state.statuses = event.statuses;
+  },
   git: (state, event) => (state.git = event),
 };
 
@@ -38,14 +41,17 @@ const RENDERERS = {
         : "";
       return `<div class="card${task.changed ? " changed" : ""}"><div class="card-top"><code>${esc(task.id)}</code>${labels}${who}</div><div class="card-title">${esc(task.title)}</div>${comments}</div>`;
     };
-    const columns = STATUSES.map(
-      ([status, name]) =>
-        `<div class="col"><div class="col-h">${name}</div>${tasks
-          .filter((t) => t.status === status)
-          .map(card)
-          .join("")}</div>`,
-    ).join("");
-    return `<b>Трекер</b> <span class="muted">— дошка оновлюється наживо, жовтим підсвічено те, що змінилось</span><div class="board">${columns}</div>`;
+    // Колонки — ті статуси, які знає трекер (в уроці 4 їх п'ять)
+    const columns = (state.statuses ?? STATUSES)
+      .map(
+        ([status, name]) =>
+          `<div class="col"><div class="col-h">${name}</div>${tasks
+            .filter((t) => t.status === status)
+            .map(card)
+            .join("")}</div>`,
+      )
+      .join("");
+    return `<b>Трекер</b> <span class="muted">— дошка оновлюється наживо, жовтим підсвічено те, що змінилось</span><div class="board" style="--cols: ${(state.statuses ?? STATUSES).length}">${columns}</div>`;
   },
 };
 

@@ -9,15 +9,13 @@ async function runTools(requests) {
   for (const request of requests) {
     try {
       let result;
-      if (request.name.includes("__")) {
-        // Нове: у назві є ім'я сервера. git__branch означає
-        // «інструмент branch від сервера git». Розрізаємо назву навпіл
-        // і передаємо прохання цьому серверу вже з короткою назвою
-        const [serverName, toolName] = request.name.split("__");
-        result = await servers[serverName].callTool(toolName, request.input);
-      } else {
-        // Без префікса — файли від лабораторії: запускаємо їх самі
+      if (tools[request.name]) {
+        // Файли дає лабораторія: запускаємо їх самі, як раніше
         result = await tools[request.name].run(request.input);
+      } else {
+        // Нове: інструменти трекера прийшли від сервера трекера.
+        // Самі ми їх не запускаємо, а передаємо прохання серверу
+        result = await trackerServer.callTool(request.name, request.input);
       }
       results.push({
         type: "tool_result",
@@ -63,39 +61,20 @@ async function runAgent(task, toolList, instructions) {
   }
 }
 
-// Код бере першу задачу для агента і забирає її собі (урок 2)
-const [task] = tracker.list({ label: "agent", status: "todo" });
+// Код бере задачу T-6 і забирає її собі (урок 2)
+const task = tracker.get("T-6");
 tracker.update(task.id, { status: "in_progress", assignee: "агент" });
 
-// Підключаємось до обох серверів і питаємо їхні інструменти, як і раніше
-const git = await mcp.connect("git");
+// Нове: інструменти трекера тепер від сервера трекера, а не з лабораторії
 const trackerServer = await mcp.connect("tracker");
-const allGitTools = await git.listTools();
-const gitTools = allGitTools.filter((tool) => tool.name !== "merge");
 const trackerTools = await trackerServer.listTools();
 
-// Нове: перед назвою кожного інструмента дописуємо ім'я сервера.
-// Були два list, а стали git__list і tracker__list
-function withServerName(server, defs) {
-  return defs.map((def) => ({ ...def, name: `${server.name}__${def.name}` }));
-}
-
-// Сервери за іменем: з префікса runTools дізнається ім'я і бере сервер звідси
-const servers = { git, tracker: trackerServer };
-
-const toolList = [
-  tools.read_file.def,
-  tools.write_file.def,
-  ...withServerName(trackerServer, trackerTools),
-  ...withServerName(git, gitTools),
-];
+const toolList = [tools.read_file.def, tools.write_file.def, ...trackerTools];
 const instructions =
   "Ти агент-розробник і виконуєш задачі з трекера. " +
-  "Спершу створи гілку: agent/ і номер задачі, наприклад agent/T-1. " +
   "Перш ніж змінити файл, прочитай його. " +
-  "Наприкінці закоміть зміни з коротким описом. " +
-  "Після коміту відкрий merge request, напиши в задачі коментар " +
-  "з його номером і переведи задачу в статус review. " +
-  "Коротко, українською.";
+  "Коли закінчиш, напиши в задачі коментар, що зробив. " +
+  "Якщо задачу зробити не можна, переведи її в статус blocked " +
+  "і напиши в коментарі чому. Коротко, українською.";
 
 await runAgent(task, toolList, instructions);

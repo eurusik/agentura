@@ -3,20 +3,12 @@ function getRequests(reply) {
   return reply.content.filter((part) => part.type === "tool_use");
 }
 
-// Запускає інструменти, які попросила модель
+// Запускає інструменти і повертає, що вони видали (з уроку 1)
 async function runTools(requests) {
   const results = [];
   for (const request of requests) {
     try {
-      let result;
-      if (tools[request.name]) {
-        // Файли і трекер дає лабораторія: запускаємо їх самі, як раніше
-        result = await tools[request.name].run(request.input);
-      } else {
-        // Нове: інструменти git прийшли від сервера git.
-        // Самі ми їх не запускаємо, а передаємо прохання серверу
-        result = await git.callTool(request.name, request.input);
-      }
+      const result = await tools[request.name].run(request.input);
       results.push({
         type: "tool_result",
         tool_use_id: request.id,
@@ -61,32 +53,25 @@ async function runAgent(task, toolList, instructions) {
   }
 }
 
-// Код бере першу задачу для агента і забирає її собі (урок 2)
-const [task] = tracker.list({ label: "agent", status: "todo" });
+// Код бере задачу T-6 і забирає її собі (урок 2)
+const task = tracker.get("T-6");
 tracker.update(task.id, { status: "in_progress", assignee: "агент" });
 
-// Нове: підключаємось до сервера git
-const git = await mcp.connect("git");
+// Як лабораторія описала моделі статуси в інструменті update_task?
+console.log(tools.update_task.def.input_schema.properties.status);
 
-// і питаємо, які в нього інструменти (це запит tools/list)
-const gitTools = await git.listTools();
-
-// Сервер віддає всі свої інструменти, зокрема merge.
-// Але зливати агенту не даємо, як у кроці 3: merge викидаємо зі списку
+// Як у кінці уроку 3, тільки без git: для цієї задачі він не потрібен
 const toolList = [
   tools.read_file.def,
   tools.write_file.def,
   tools.add_comment.def,
   tools.update_task.def,
-  ...gitTools.filter((tool) => tool.name !== "merge"),
 ];
 const instructions =
   "Ти агент-розробник і виконуєш задачі з трекера. " +
-  "Спершу створи гілку: agent/ і номер задачі, наприклад agent/T-1. " +
   "Перш ніж змінити файл, прочитай його. " +
-  "Наприкінці закоміть зміни з коротким описом. " +
-  "Після коміту відкрий merge request, напиши в задачі коментар " +
-  "з його номером і переведи задачу в статус review. " +
-  "Коротко, українською.";
+  "Коли закінчиш, напиши в задачі коментар, що зробив. " +
+  "Якщо задачу зробити не можна, переведи її в статус blocked " +
+  "і напиши в коментарі чому. Коротко, українською.";
 
 await runAgent(task, toolList, instructions);

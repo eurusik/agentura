@@ -113,7 +113,9 @@ function framesForTool(event) {
         title: event.title ?? `Код сам запускає ${esc(event.name)}`,
         say: `<pre>${esc(short(event.output, 220))}</pre>`,
         why: event.why ?? "Це робить код, модель тут не бере участі.",
-        json: event,
+        // Розмова з MCP-сервером: у деталях — справжні повідомлення JSON-RPC
+        json: event.rpc ?? event,
+        event,
       },
     ];
   }
@@ -129,8 +131,9 @@ function framesForTool(event) {
           ? `Сервер ${esc(event.server)} виконує ${esc(event.name)}`
           : `Сервер ${esc(event.server)}: ${esc(event.name)} не спрацював`,
         say: `<pre>${esc(short(event.output, 220))}</pre>`,
-        why: "Код не знає, як влаштований цей інструмент. Він передав прохання моделі серверу (tools/call), а виконав його сервер.",
-        json: event,
+        why: "Код не знає, як влаштований цей інструмент. Він передав прохання серверу (запит tools/call), а виконав його сервер. У деталях — справжні повідомлення JSON-RPC.",
+        json: event.rpc ?? event,
+        event,
       },
     ];
   }
@@ -163,6 +166,7 @@ function framesForTool(event) {
         ? "Інструмент запускає наш код. Модель тільки попросила."
         : "Інструмент упав з помилкою, і код її не перехопив. Через це впала вся програма, а модель так і не дізналась, що сталось.",
       json: event,
+      event,
     },
   ];
 }
