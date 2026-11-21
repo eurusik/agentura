@@ -6,6 +6,10 @@ import { createPlayer } from "./player.js";
 import { realModel, loadModelStatus, STUB_HINT, realModelHint } from "./model-status.js";
 import { STATE_EVENTS, drawPanels } from "./panels.js";
 
+// Браузер довго тримає скрипт воркера в кеші, навіть після перезавантаження сторінки.
+// Коли міняєш runtime/worker.js, збільш це число, щоб усі отримали нову версію.
+const WORKER_VERSION = 2;
+
 /**
  * @param lesson урок, підготовлений loadLesson(): кроки з уже завантаженим кодом (source, fixSource),
  *               адреса пісочниці (sandboxUrl) і опис прохань (describe)
@@ -111,7 +115,7 @@ export function renderStep(lesson, index, parent, onNext) {
     stopButton.hidden = false;
 
     // Твій код виконується в окремому потоці (Web Worker) — сторінку він не зламає
-    worker = new Worker("runtime/worker.js", { type: "module" });
+    worker = new Worker(`runtime/worker.js?v=${WORKER_VERSION}`, { type: "module" });
     const limitSeconds = mode === "real" ? 180 : 30;
     timeout = setTimeout(() => {
       stopWorker();
