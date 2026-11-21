@@ -3,7 +3,7 @@ function getRequests(reply) {
   return reply.content.filter((part) => part.type === "tool_use");
 }
 
-// Запускає інструменти і повертає результати; помилку віддає моделі (з уроку 1)
+// Запускає інструменти і повертає, що вони видали (з уроку 1)
 async function runTools(requests) {
   const results = [];
   for (const request of requests) {
@@ -15,6 +15,7 @@ async function runTools(requests) {
         content: result,
       });
     } catch (error) {
+      // Інструмент впав — кажемо моделі, що сталось, і хай пробує інакше
       results.push({
         type: "tool_result",
         tool_use_id: request.id,
@@ -41,6 +42,7 @@ for (let turn = 1; turn <= 5; turn++) {
   const reply = await model({ messages, tools: toolList });
   messages.push({ role: "assistant", content: reply.content });
 
+  // Модель нічого не просить — значить, вона вже відповіла. Виходимо
   const requests = getRequests(reply);
   if (requests.length === 0) break;
 

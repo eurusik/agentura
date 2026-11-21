@@ -37,7 +37,7 @@ function framesForRequest(event, ctx) {
   // Токени рахуємо приблизно: ~4 символи на токен
   const tokens = Math.ceil(JSON.stringify([event.messages, event.toolDefs]).length / 4);
   ctx.tokens.push(tokens);
-  const isFirst = ctx.calls === 0;
+  const isFirst = event.messages.length === 1; // нова розмова: у ній поки тільки питання
   const toolNames = event.tools.length
     ? `Разом з розмовою йде список інструментів: <code>${event.tools.join("</code>, <code>")}</code>. `
     : "Інструментів моделі не дали, тож відповісти вона може тільки текстом. ";
@@ -88,6 +88,7 @@ function framesForReply(event, ctx) {
     .join(" ");
   return [
     {
+      tag: "answer",
       actor: "code-model",
       dir: "←",
       kind: "model",
@@ -119,6 +120,7 @@ function framesForTool(event) {
   if (event.escaped) {
     return [
       {
+        tag: "tool",
         actor: "code-tools",
         dir: "→",
         kind: "bad",

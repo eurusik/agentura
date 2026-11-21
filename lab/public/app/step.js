@@ -5,6 +5,7 @@ import { framesFor } from "./frames.js";
 import { createPlayer } from "./player.js";
 import { realModel, loadModelStatus, STUB_HINT, realModelHint } from "./model-status.js";
 import { STATE_EVENTS, drawPanels } from "./panels.js";
+import { createAgentFolder } from "./agent-fold.js";
 
 // Браузер довго тримає скрипт воркера в кеші, навіть після перезавантаження сторінки.
 // Коли міняєш runtime/worker.js, збільш це число, щоб усі отримали нову версію.
@@ -59,6 +60,7 @@ export function renderStep(lesson, index, parent, onNext) {
   let timeout = null;
   let player = null;
   let ctx = null; // лічильники поточного запуску
+  let pushFrame = null; // як кадри потрапляють у блок «Що сталося»: по одному чи згорнуто
   let panelState = {}; // стан пісочниці для панелей під кодом: файли, задачі…
 
   section.editor = () => editor; // для автотестів
@@ -99,7 +101,7 @@ export function renderStep(lesson, index, parent, onNext) {
   stopButton.onclick = () => {
     stopWorker();
     if (!player) return;
-    framesFor({ type: "error", stopped: true }, ctx).forEach(player.push);
+    framesFor({ type: "error", stopped: true }, ctx).forEach((frame) => pushFrame(frame));
     finishRun();
   };
 
@@ -110,6 +112,8 @@ export function renderStep(lesson, index, parent, onNext) {
     ctx = { calls: 0, tokens: [], cost: 0, mode, loop: null, describe: lesson.describe };
     panelState = {};
     player = createPlayer(out, showAfterRun);
+    // Цикл агента вже знайомий? Тоді показуємо крупніше (див. agent-fold.js)
+    pushFrame = (step.foldAgent ?? lesson.foldAgent) ? createAgentFolder(player) : pushFolded;
     player.live = mode === "real";
     runButton.disabled = true;
     stopButton.hidden = false;
@@ -137,7 +141,7 @@ export function renderStep(lesson, index, parent, onNext) {
       }
       if (mode === "real") player.setWaiting(event.type === "request");
       if (event.type === "reply" && event.cost) ctx.cost += event.cost;
-      framesFor(event, ctx).forEach(pushFolded);
+      framesFor(event, ctx).forEach((frame) => pushFrame(frame));
       if (event.type === "done" || event.type === "error") {
         stopWorker();
         finishRun();
@@ -178,7 +182,7 @@ export function renderStep(lesson, index, parent, onNext) {
         : fixed
           ? (step.fixInsight ?? step.insight)
           : step.insight;
-    player.push({ actor: "code", kind: "end", title: "Що ми щойно побачили", say: summary });
+    pushFrame({ actor: "code", kind: "end", title: "Що ми щойно побачили", say: summary });
   }
 
   // ---------- згортання циклу: після 3 однакових прохань решту кола показуємо одним кадром

@@ -1,13 +1,14 @@
 // Урок 2: агент бере задачі з маленького трекера. Принцип кроків: спершу бачиш проблему, потім виправляєш.
 import step1 from "./steps/01-list.js";
-import step2 from "./steps/02-take.js";
-import step3 from "./steps/03-report.js";
-import step4 from "./steps/04-unclear.js";
-import step5 from "./steps/05-queue.js";
+import step2 from "./steps/02-give.js";
+import step3 from "./steps/03-take.js";
+import step4 from "./steps/04-report.js";
+import step5 from "./steps/05-unclear.js";
+import step6 from "./steps/06-queue.js";
 
 export default {
   title: "Урок 2. Міні-трекер: агент бере задачу",
-  goal: "Підключаємо агента до маленького трекера задач: він бере задачу, виконує її і звітує, а код веде чергу.",
+  goal: "Показую, як агент отримує роботу з трекера: бере задачу, виконує, звітує, а код веде чергу.",
   // Що ще, крім model, tools, resolvePath і console, лабораторія дає кодові в цьому уроці
   given: [
     [
@@ -15,7 +16,12 @@ export default {
       "Трекер задач для коду: <code>tracker.list({ label, status })</code>, <code>tracker.get(id)</code>, <code>tracker.update(id, { status, assignee })</code>, <code>tracker.comment(id, text)</code>. Код звертається до нього сам, без моделі.",
     ],
   ],
-  steps: [step1, step2, step3, step4, step5],
+  // Цикл агента учень уже бачив в уроці 1, тож роботу агента над задачею показуємо одним кадром
+  foldAgent: true,
+  // Що далі: показується в кінці уроку, після тесту
+  outro:
+    "Агент уже бере задачі з трекера, звітує і не вигадує, коли задача незрозуміла. Але результат його роботи поки що просто файли в папці. У команді так не працюють: зміни в коді йдуть через гілку, коміт і merge request, який переглядає людина. Цим займемось в уроці 3. А ще там знадобиться третій набір інструментів, і стане видно, чому інструменти для сервісів зазвичай пишуть не в коді агента. Про це MCP.",
+  steps: [step1, step2, step3, step4, step5, step6],
   quiz: [
     {
       q: "Хто в цьому уроці вирішує, яку задачу взяти?",

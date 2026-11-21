@@ -78,12 +78,19 @@ export function createPlayer(container, onEnd) {
     const details = frame.json
       ? `<details class="mini"><summary>Деталі (JSON)</summary><pre class="json">${jsonHTML(frame.json)}</pre></details>`
       : "";
+    // Згорнутий кадр (див. agent-fold.js): усе, що в ньому, можна розгорнути
+    const inner =
+      frame.inner?.length > 1 || frame.tag === "agent"
+        ? `<details class="mini"><summary>Розгорнути (${frame.inner.length})</summary><ol class="inner">${frame.inner
+            .map((f) => `<li><b>${f.title}</b><div>${f.say}</div></li>`)
+            .join("")}</ol></details>`
+        : "";
     frameEl.className = `frame ${frame.kind}`;
     frameEl.innerHTML = `
       <div class="ft">${counter} · ${frame.title}</div>
       <div class="say">${frame.say}</div>
       ${frame.why ? `<div class="why">${frame.why}</div>` : ""}
-      ${seen}${details}`;
+      ${inner}${seen}${details}`;
   }
 
   player.draw = () => {

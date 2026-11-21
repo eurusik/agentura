@@ -379,6 +379,19 @@ details.mini summary {
   color: var(--muted);
   font-size: 13px;
 }
+details.mini ol.inner {
+  margin: 8px 0 0;
+  padding-left: 22px;
+  font-size: 13.5px;
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  overflow: auto;
+}
+details.mini ol.inner pre {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
 details.mini pre.json {
   background: var(--j-bg);
   border: 1px solid var(--line);

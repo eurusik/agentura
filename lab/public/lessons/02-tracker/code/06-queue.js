@@ -3,7 +3,7 @@ function getRequests(reply) {
   return reply.content.filter((part) => part.type === "tool_use");
 }
 
-// Запускає інструменти і повертає результати; помилку віддає моделі (з уроку 1)
+// Запускає інструменти і повертає, що вони видали (з уроку 1)
 async function runTools(requests) {
   const results = [];
   for (const request of requests) {
@@ -15,6 +15,7 @@ async function runTools(requests) {
         content: result,
       });
     } catch (error) {
+      // Інструмент впав — кажемо моделі, що сталось, і хай пробує інакше
       results.push({
         type: "tool_result",
         tool_use_id: request.id,
@@ -26,14 +27,18 @@ async function runTools(requests) {
   return results;
 }
 
-// Агент з уроку 1: отримує задачу текстом і крутить цикл, не більше 5 кіл
+// Агент з уроку 1, тепер у функції: отримує задачу і крутить свій цикл.
+// instructions можна не передавати, тоді агент працює без інструкції
 async function runAgent(task, toolList, instructions) {
+  // Розмова починається з самої задачі: номер, назва, а з нового рядка опис
   const messages = [
     {
       role: "user",
       content: `Задача ${task.id}: ${task.title}\n${task.description}`,
     },
   ];
+
+  // Щонайбільше 5 кіл, як у кроці 7 уроку 1
   for (let turn = 1; turn <= 5; turn++) {
     const reply = await model({
       system: instructions,
@@ -42,6 +47,7 @@ async function runAgent(task, toolList, instructions) {
     });
     messages.push({ role: "assistant", content: reply.content });
 
+    // Модель нічого не просить — значить, задачу закінчено. Виходимо
     const requests = getRequests(reply);
     if (requests.length === 0) return;
 
@@ -50,13 +56,15 @@ async function runAgent(task, toolList, instructions) {
   }
 }
 
-// Тепер агент може ще й звітувати в трекер
+// Інструменти агента: файли і звіт у трекер
 const toolList = [
   tools.read_file.def,
   tools.write_file.def,
   tools.add_comment.def,
   tools.update_task.def,
 ];
+
+// Інструкція з кроків 4 і 5
 const instructions =
   "Ти агент-розробник і виконуєш задачі з трекера. " +
   "Коли закінчиш, напиши в задачі коментар, що саме зробив, " +
@@ -65,17 +73,13 @@ const instructions =
   "нічого не вигадуй: напиши в коментарі конкретне питання " +
   "і поверни задачу в статус todo. Коротко, українською.";
 
-// Задачі, які агент уже брав у цьому запуску
-const seen = new Set();
-
 // Дві петлі: зовнішня бере задачі з трекера, внутрішня (runAgent) їх виконує
 while (true) {
-  const task = tracker
-    .list({ label: "agent", status: "todo" })
-    .find((t) => !seen.has(t.id));
+  // Перша задача з міткою agent, яку ще ніхто не взяв
+  const [task] = tracker.list({ label: "agent", status: "todo" });
   if (!task) break;
-  seen.add(task.id);
 
+  // Забираємо задачу собі, як у кроці 3, і віддаємо агенту
   tracker.update(task.id, { status: "in_progress", assignee: "агент" });
   await runAgent(task, toolList, instructions);
 }

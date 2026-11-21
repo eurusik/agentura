@@ -111,7 +111,8 @@ function renderQuiz(lesson) {
       ? `<a class="next" href="lesson.html?l=${next.id}"><span class="next-l">Наступний урок ${next.id}</span><span class="next-t">${esc(next.title)} →</span></a>`
       : `<a class="next" href="./"><span class="next-l">Наступний урок ${next.id} «${esc(next.title)}» — скоро</span><span class="next-t">До всіх уроків →</span></a>`;
 
-  section.insertAdjacentHTML("beforeend", `<p>Урок пройдено. ${tryReal}</p>${nextLink}`);
+  const outro = lesson.outro ? `<p>${lesson.outro}</p>` : "";
+  section.insertAdjacentHTML("beforeend", `${outro}<p>Урок пройдено. ${tryReal}</p>${nextLink}`);
   return section;
 }
 
