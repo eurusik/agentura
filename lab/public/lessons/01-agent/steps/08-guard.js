@@ -2,6 +2,7 @@
 export default {
   title: "Моделі на слово не віримо",
   scenario: "escape", // як поводиться заготовка моделі (див. sandbox.js)
+  stubLabel: "Заготовка (пише за межі)", // підпис кнопки, коли заготовка навмисно поводиться погано
   panels: ["files"],
   code: "code/08-guard.js",
   text: `

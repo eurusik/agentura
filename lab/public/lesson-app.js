@@ -10,9 +10,10 @@ const flow = document.getElementById("flow");
 const progress = document.getElementById("progress");
 const backLink = `<a class="back" href="./">← Усі уроки</a>`;
 
-const GIVEN = `
+// Довідка «Що дає лабораторія»; урок може додати свої пункти (lesson.given)
+const givenBlock = (extra = []) => `
   <details class="given">
-    <summary>Що дає лабораторія: звідки в коді беруться <code>model</code>, <code>tools</code>, <code>resolvePath</code></summary>
+    <summary>Що дає лабораторія: звідки в коді беруться <code>model</code>, <code>tools</code> та інше</summary>
     <p>Код у кроках — це не цілий проєкт, а тільки серцевина агента. Кілька речей лабораторія дає готовими, імпортувати їх не треба:</p>
     <dl>
       <dt><code>model({ system, messages, tools })</code></dt>
@@ -21,6 +22,7 @@ const GIVEN = `
       <dd>Інструменти уроку. У кожного є <code>.def</code>, опис для моделі, і <code>.run(input)</code>, функція, яка робить дію. Файли лежать у віртуальній папці <code>/work</code> прямо в браузері.</dd>
       <dt><code>resolvePath(base, path)</code></dt>
       <dd>Прибирає <code>..</code> зі шляху і показує, куди він веде насправді.</dd>
+      ${extra.map(([name, text]) => `<dt><code>${name}</code></dt><dd>${text}</dd>`).join("")}
       <dt><code>console.log(...)</code></dt>
       <dd>Показує текст у блоці «Що сталося» під кодом.</dd>
     </dl>
@@ -49,7 +51,7 @@ async function start() {
     <h1>${esc(lesson.title)}</h1>
     <p class="goal">${esc(lesson.goal)}</p>
     <p class="muted">Кожен крок влаштований однаково. Спершу трохи тексту, потім код (нові рядки підсвічено <span class="legend-new"><i></i></span>). Натискаєш <b>▶ Запустити</b>, і під кодом з'являється блок «Що сталося», його можна гортати по одному кадру (<kbd>←</kbd> <kbd>→</kbd>). Код можна змінювати і запускати скільки завгодно. Він виконується прямо в браузері, а файли, з якими працює агент, віртуальні, тож справжній диск він не зачепить.</p>
-    ${GIVEN}`;
+    ${givenBlock(lesson.given)}`;
 
   // Смужка прогресу вгорі: по одній рисці на крок + одна на тест
   progress.innerHTML = "<span></span>".repeat(lesson.steps.length + 1);

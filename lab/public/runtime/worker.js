@@ -108,17 +108,21 @@ onmessage = async ({ data }) => {
   try {
     const sandbox = await import(data.sandbox);
     const workspace = createWorkspace(sandbox.FILES, report);
-    const tools = sandbox.createTools(workspace, report);
+    // Урок може дати кодові свої готові об'єкти, наприклад tracker у уроці 2
+    const globals = sandbox.createGlobals?.(workspace, report) ?? {};
+    const tools = sandbox.createTools(workspace, report, globals);
     const model = createModel({
       mode: data.mode,
       stub: (request) => sandbox.stubModel(request, data.scenario),
     });
     workspace.reportFiles();
 
-    // Код учня стає тілом async-функції, а model, tools, resolvePath і console — її параметрами
+    // Код учня стає тілом async-функції, а model, tools, resolvePath, console
+    // і глобальні об'єкти уроку — її параметрами
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-    const learnerCode = new AsyncFunction("model", "tools", "resolvePath", "console", data.code);
-    await learnerCode(model, tools, resolvePath, learnerConsole);
+    const names = ["model", "tools", "resolvePath", "console", ...Object.keys(globals)];
+    const learnerCode = new AsyncFunction(...names, data.code);
+    await learnerCode(model, tools, resolvePath, learnerConsole, ...Object.values(globals));
     report({ type: "done" });
   } catch (error) {
     report({ type: "error", message: error?.message ?? String(error), cap: error?.labCap === true });

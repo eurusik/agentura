@@ -4,14 +4,7 @@ import { createEditor, replaceEditor, newLines } from "./editor.js";
 import { framesFor } from "./frames.js";
 import { createPlayer } from "./player.js";
 import { realModel, loadModelStatus, STUB_HINT, realModelHint } from "./model-status.js";
-
-// Підпис кнопки заготовки, коли вона в кроці навмисно поводиться погано
-const STUB_LABEL = {
-  runaway: "Заготовка (зациклена)",
-  escape: "Заготовка (пише за межі)",
-  "no-instructions": "Заготовка (без інструкції)",
-  "broken-tool": "Заготовка (інструмент падає)",
-};
+import { STATE_EVENTS, drawPanels } from "./panels.js";
 
 /**
  * @param lesson урок, підготовлений loadLesson(): кроки з уже завантаженим кодом (source, fixSource),
@@ -33,7 +26,7 @@ export function renderStep(lesson, index, parent, onNext) {
     <div class="modebar">
       <span class="seg-l">Хто відповідає за модель</span>
       <span class="seg" role="group">
-        <button data-mode="stub" class="on">${STUB_LABEL[step.scenario] ?? "Заготовка"}</button>
+        <button data-mode="stub" class="on">${step.stubLabel ?? "Заготовка"}</button>
         <button data-mode="real"></button>
       </span>
     </div>
@@ -62,6 +55,7 @@ export function renderStep(lesson, index, parent, onNext) {
   let timeout = null;
   let player = null;
   let ctx = null; // лічильники поточного запуску
+  let panelState = {}; // стан пісочниці для панелей під кодом: файли, задачі…
 
   section.editor = () => editor; // для автотестів
 
@@ -110,6 +104,7 @@ export function renderStep(lesson, index, parent, onNext) {
     stopWorker();
     out.innerHTML = "";
     ctx = { calls: 0, tokens: [], cost: 0, mode, loop: null, describe: lesson.describe };
+    panelState = {};
     player = createPlayer(out, showAfterRun);
     player.live = mode === "real";
     runButton.disabled = true;
@@ -130,9 +125,10 @@ export function renderStep(lesson, index, parent, onNext) {
     }, limitSeconds * 1000);
 
     worker.onmessage = ({ data: event }) => {
-      if (event.type === "fs") {
-        player.files = event.files;
-        drawFiles();
+      // Події про стан пісочниці (файли, трекер…) оновлюють панелі під кодом
+      if (STATE_EVENTS[event.type]) {
+        STATE_EVENTS[event.type](panelState, event);
+        drawPanels(out, step.panels, panelState);
         return;
       }
       if (mode === "real") player.setWaiting(event.type === "request");
@@ -220,21 +216,6 @@ export function renderStep(lesson, index, parent, onNext) {
       }
     }
     player.push(frame);
-  }
-
-  // ---------- список файлів (тільки в кроках, де він потрібен)
-  function drawFiles() {
-    if (!(step.panels ?? []).includes("files")) return;
-    let panel = out.querySelector(".files-panel");
-    if (!panel) {
-      panel = document.createElement("div");
-      panel.className = "panel files-panel";
-      out.appendChild(panel);
-    }
-    const items = (player.files ?? [])
-      .map((file) => `<li class="${file.startsWith("/work/") ? "" : "out"}">${esc(file)}</li>`)
-      .join("");
-    panel.innerHTML = `<b>Файли</b> <span class="muted">— робоча папка агента <code>/work</code>; червоне — поза нею</span><ul class="files">${items}</ul>`;
   }
 
   // ---------- після першого перегляду: виправлення або «Покрути» + наступний крок

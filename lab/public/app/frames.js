@@ -101,6 +101,21 @@ function framesForReply(event, ctx) {
 
 // Кадр для запущеного інструмента
 function framesForTool(event) {
+  // Дію запустив сам код, без прохання моделі (наприклад, опитав трекер)
+  if (event.byCode) {
+    return [
+      {
+        tag: "code-tool",
+        actor: "code-tools",
+        dir: "→",
+        kind: event.ok === false ? "bad" : "tool",
+        title: event.title ?? `Код сам запускає ${esc(event.name)}`,
+        say: `<pre>${esc(short(event.output, 220))}</pre>`,
+        why: event.why ?? "Це робить код, модель тут не бере участі.",
+        json: event,
+      },
+    ];
+  }
   if (event.escaped) {
     return [
       {

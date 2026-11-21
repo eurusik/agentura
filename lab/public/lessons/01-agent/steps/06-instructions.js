@@ -2,6 +2,7 @@
 export default {
   title: "Даємо агенту інструкцію",
   scenario: "no-instructions", // як поводиться заготовка моделі (див. sandbox.js)
+  stubLabel: "Заготовка (без інструкції)", // підпис кнопки, коли заготовка навмисно поводиться погано
   panels: ["messages"],
   code: "code/06-instructions.js",
   text: `
