@@ -3,7 +3,7 @@
 //   • усю роботу агента над задачею — одним кадром (кола можна розгорнути);
 //   • кілька дій коду з трекером підряд — теж одним кадром;
 //   • якщо код знову і знову бере ту саму задачу — один кадр з лічильником.
-import { esc } from "./util.js";
+import { esc, timesCount } from "./util.js";
 
 // Кадри, які належать циклу агента (див. теги у frames.js)
 const AGENT_TAGS = ["call", "ask", "tool", "back", "answer"];
@@ -26,7 +26,7 @@ export function createAgentFolder(player) {
       // Код знову віддав агенту ту саму задачу
       if (repeat) {
         repeat.count++;
-        repeat.say = `Код знову віддає агенту «${esc(task)}». Уже <b>${repeat.count}</b> рази поспіль.`;
+        sayRepeat();
         held = []; // ті самі дії коду, що й минулого разу, — не показуємо
         player.draw();
         return "swallow";
@@ -36,9 +36,10 @@ export function createAgentFolder(player) {
         kind: "bad",
         title: "Та сама задача ще раз",
         count: 2,
-        say: `Код знову віддає агенту «${esc(task)}». Уже <b>2</b> рази поспіль.`,
+        task,
         why: "Агент цю задачу вже брав. Код цього не пам'ятає, тому бере її знову, а з нею і нові виклики моделі.",
       };
+      sayRepeat();
       flushHeld();
       player.push(repeat);
       return "swallow";
@@ -68,6 +69,7 @@ export function createAgentFolder(player) {
       lastTask ? `<b>${esc(lastTask)}</b>` : "",
       `Кіл: <b>${turns}</b>.`,
       asks.length ? `Що агент робив:<br>${asks.map((a) => `• ${a}`).join("<br>")}` : "",
+      whoRan(),
       answer ? `Наостанок відповів: ${answer.say}` : "",
     ];
     group.say = lines.filter(Boolean).join("<br>");
@@ -75,6 +77,23 @@ export function createAgentFolder(player) {
     if (id) group.title = `Агент працює над ${esc(id)}`;
     const lastCall = [...group.inner].reverse().find((f) => f.messages);
     group.messages = lastCall?.messages;
+  }
+
+  // Хто виконав інструменти: лабораторія чи MCP-сервер (з уроку 3)
+  function whoRan() {
+    const runs = group.inner.filter((f) => f.tag === "tool" && f.json);
+    if (!runs.some((f) => f.json.server)) return "";
+    const counts = {};
+    for (const f of runs) {
+      const who = f.json.server ? `сервер ${f.json.server}` : "лабораторія";
+      counts[who] = (counts[who] ?? 0) + 1;
+    }
+    const list = Object.entries(counts).map(([who, n]) => `${who} — ${timesCount(n)}`);
+    return `Інструменти виконали: ${list.join(", ")}.`;
+  }
+
+  function sayRepeat() {
+    repeat.say = `Код знову віддає агенту «${esc(repeat.task)}». Уже <b>${timesCount(repeat.count)}</b> поспіль.`;
   }
 
   function closeRepeat() {
@@ -86,17 +105,21 @@ export function createAgentFolder(player) {
     held = [];
   }
 
-  // Дії коду з трекером: дві й більше підряд зливаємо в один кадр
+  // Дії коду з одним і тим самим (трекером або MCP-серверами) підряд зливаємо в один кадр.
+  // Різне не змішуємо: розмова з MCP-серверами — окремий кадр, щоб її було видно
+  const CODE_TITLES = { tracker: "Код сам працює з трекером", mcp: "Код питає сервери про інструменти" };
+
   function pushCode(frame) {
-    if (!codeFrame) {
-      codeFrame = { ...frame, inner: [frame] };
+    const source = frame.json?.name;
+    if (!codeFrame || codeFrame.source !== source) {
+      codeFrame = { ...frame, inner: [frame], source };
       player.push(codeFrame);
       return;
     }
     codeFrame.inner.push(frame);
-    codeFrame.title = "Код сам працює з трекером";
+    codeFrame.title = CODE_TITLES[source] ?? "Код сам робить кілька дій";
     codeFrame.say = codeFrame.inner.map((f) => `• ${f.title}`).join("<br>");
-    codeFrame.why = "Це робить код, без моделі. Розгорни, щоб побачити відповідь трекера на кожну дію.";
+    codeFrame.why = "Це робить код, без моделі. Розгорни, щоб побачити відповідь на кожну дію.";
     codeFrame.json = undefined;
     player.draw();
   }
@@ -127,6 +150,11 @@ export function createAgentFolder(player) {
       return;
     }
     codeFrame = null;
+    if (repeat && held.length && frame.kind === "bad") {
+      repeat.count++; // код устиг узяти задачу ще раз, а далі його зупинили
+      sayRepeat();
+      held = [];
+    }
     flushHeld();
     player.push(frame);
   };

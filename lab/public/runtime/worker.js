@@ -40,6 +40,20 @@ function checkHistoryLikeApi(messages) {
   });
 }
 
+// Справжній API так само відхиляє список інструментів, де дві однакові назви:
+// модель не змогла б сказати, який із них просить.
+function checkToolsLikeApi(tools) {
+  const seen = new Set();
+  for (const tool of tools) {
+    if (seen.has(tool.name)) {
+      throw new Error(
+        `API не прийняв запит (помилка 400): два інструменти з однаковою назвою «${tool.name}». Назви інструментів мають бути унікальні.`,
+      );
+    }
+    seen.add(tool.name);
+  }
+}
+
 // model() — те, що викликає код учня. Однакова для заготовки і справжньої моделі.
 function createModel({ mode, stub }) {
   let calls = 0;
@@ -54,6 +68,7 @@ function createModel({ mode, stub }) {
     }
     const messages = request.messages ?? [];
     checkHistoryLikeApi(messages);
+    checkToolsLikeApi(request.tools ?? []);
     report({
       type: "request",
       n: calls,

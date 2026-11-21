@@ -1055,3 +1055,64 @@ pre.cmds {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------- панель git */
+.git {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.git .branch,
+.mrs .mr {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+.git ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+}
+.git li.dirty {
+  color: var(--danger);
+}
+.git .branch.changed,
+.mrs .mr.changed {
+  border-color: #d9a400;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #d9a400 25%, transparent);
+}
+.git li.changed {
+  background: color-mix(in srgb, #d9a400 18%, transparent);
+  border-radius: 4px;
+}
+.mrs {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.mrs .mr {
+  font-size: 13.5px;
+}
+.mrs .mr.merged {
+  opacity: 0.85;
+}
+.mrs summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.diff-file pre {
+  margin: 4px 0 8px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.diff-file .add {
+  color: var(--j-str);
+}
+.diff-file .del {
+  color: var(--danger);
+}

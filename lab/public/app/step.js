@@ -9,7 +9,7 @@ import { createAgentFolder } from "./agent-fold.js";
 
 // Браузер довго тримає скрипт воркера в кеші, навіть після перезавантаження сторінки.
 // Коли міняєш runtime/worker.js, збільш це число, щоб усі отримали нову версію.
-const WORKER_VERSION = 2;
+const WORKER_VERSION = 3;
 
 /**
  * @param lesson урок, підготовлений loadLesson(): кроки з уже завантаженим кодом (source, fixSource),

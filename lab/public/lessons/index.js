@@ -28,8 +28,9 @@ export const LESSONS = [
     id: 3,
     folder: "03-git",
     title: "Міні-git: гілка, коміт, MR",
-    about: "Агент робить гілку, пише код, комітить і відкриває merge request. Мерджить — людина.",
-    status: "soon",
+    about:
+      "Агент робить гілку, комітить і відкриває merge request, а зливає людина. І звідки беруться інструменти для сервісів: MCP.",
+    status: "ready",
   },
   {
     id: 4,

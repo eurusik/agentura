@@ -6,6 +6,7 @@ import { esc } from "./util.js";
 export const STATE_EVENTS = {
   fs: (state, event) => (state.files = event.files),
   tracker: (state, event) => (state.tasks = event.tasks),
+  git: (state, event) => (state.git = event),
 };
 
 const STATUSES = [
@@ -46,6 +47,47 @@ const RENDERERS = {
     ).join("");
     return `<b>Трекер</b> <span class="muted">— дошка оновлюється наживо, жовтим підсвічено те, що змінилось</span><div class="board">${columns}</div>`;
   },
+};
+
+// Гілки, коміти і merge request'и міні-git
+RENDERERS.git = (state) => {
+  const git = state.git;
+  if (!git) return "<b>Git</b>";
+  const hot = (id) => (git.highlight === id ? " changed" : "");
+  const branches = git.branches
+    .map((branch) => {
+      const here = branch.name === git.head ? ` <span class="muted">← поточна гілка</span>` : "";
+      const commits = branch.commits.length
+        ? branch.commits
+            .map(
+              (c) =>
+                `<li class="${hot(c.id)}"><code>${esc(c.id)}</code> ${esc(c.message)} <span class="muted">· ${esc(c.author)}</span></li>`,
+            )
+            .join("")
+        : `<li class="muted">нових комітів немає</li>`;
+      const dirty =
+        branch.name === git.head && git.changed.length
+          ? `<li class="dirty">не закомічено: ${git.changed.map((f) => `<code>${esc(f)}</code>`).join(", ")}</li>`
+          : "";
+      return `<div class="branch${hot(branch.name)}"><b>${esc(branch.name)}</b>${here}<ul>${commits}${dirty}</ul></div>`;
+    })
+    .join("");
+  const mrs = git.mrs
+    .map((mr) => {
+      const status =
+        mr.status === "merged" ? `злитий${mr.mergedBy ? ` (${esc(mr.mergedBy)})` : ""}` : "чекає перевірки";
+      const diff = Object.entries(mr.diff)
+        .map(
+          ([file, lines]) =>
+            `<div class="diff-file"><code>${esc(file)}</code><pre>${lines
+              .map((l) => `<span class="${l.startsWith("+") ? "add" : "del"}">${esc(l)}</span>`)
+              .join("\n")}</pre></div>`,
+        )
+        .join("");
+      return `<div class="mr ${mr.status}${hot(mr.id)}"><div><code>${esc(mr.id)}</code> ${esc(mr.title)} <span class="muted">· ${esc(mr.branch)} → main · ${status}</span></div>${mr.description ? `<div class="muted">${esc(mr.description)}</div>` : ""}<details><summary>Зміни</summary>${diff}</details></div>`;
+    })
+    .join("");
+  return `<b>Git</b> <span class="muted">— гілки, коміти і merge request'и; жовтим підсвічено те, що змінилось</span><div class="git">${branches}</div>${mrs ? `<div class="mrs"><b>Merge request'и</b>${mrs}</div>` : ""}`;
 };
 
 // Малює всі увімкнені панелі кроку під блоком «Що сталося»

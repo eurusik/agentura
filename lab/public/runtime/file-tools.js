@@ -3,6 +3,15 @@
 // Перевірок шляху тут навмисно НЕМАЄ: в уроці 1 (крок 8) їх дописують самі.
 const stringParam = { type: "string" };
 
+// «1 символ», «3 символи», «62 символи», «15 символів»
+function charsCount(n) {
+  const last = n % 10;
+  const lastTwo = n % 100;
+  if (last === 1 && lastTwo !== 11) return `${n} символ`;
+  if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return `${n} символи`;
+  return `${n} символів`;
+}
+
 export function createFileTools(workspace, report) {
   return {
     list_files: {
@@ -76,7 +85,7 @@ export function createFileTools(workspace, report) {
           ok: true,
           escaped: !workspace.isInside(fullPath),
         });
-        return `записано ${String(contents).length} символів у ${path}`;
+        return `записано ${charsCount(String(contents).length)} у ${path}`;
       },
     },
   };

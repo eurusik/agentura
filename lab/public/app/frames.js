@@ -117,6 +117,23 @@ function framesForTool(event) {
       },
     ];
   }
+  // Інструмент виконав MCP-сервер: код лише передав йому прохання моделі
+  if (event.server) {
+    return [
+      {
+        tag: "tool",
+        actor: "code-tools",
+        dir: "→",
+        kind: event.ok ? "tool" : "bad",
+        title: event.ok
+          ? `Сервер ${esc(event.server)} виконує ${esc(event.name)}`
+          : `Сервер ${esc(event.server)}: ${esc(event.name)} не спрацював`,
+        say: `<pre>${esc(short(event.output, 220))}</pre>`,
+        why: "Код не знає, як влаштований цей інструмент. Він передав прохання моделі серверу (tools/call), а виконав його сервер.",
+        json: event,
+      },
+    ];
+  }
   if (event.escaped) {
     return [
       {
