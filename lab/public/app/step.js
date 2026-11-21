@@ -7,9 +7,11 @@ import { realModel, loadModelStatus, STUB_HINT, realModelHint } from "./model-st
 import { STATE_EVENTS, drawPanels } from "./panels.js";
 import { createAgentFolder } from "./agent-fold.js";
 
-// Браузер довго тримає скрипт воркера в кеші, навіть після перезавантаження сторінки.
-// Коли міняєш runtime/worker.js, збільш це число, щоб усі отримали нову версію.
-const WORKER_VERSION = 3;
+// Версія сайту. Під час деплою до адрес усіх модулів дописується ?v=<коміт>
+// (scripts/stamp-version.mjs), тож тут вона вже є. Додаємо її і до адреси воркера:
+// без цього браузер може взяти з кешу старий воркер навіть після перезавантаження.
+// Локально версії немає, і це порожній рядок.
+const VERSION = new URL(import.meta.url).search;
 
 /**
  * @param lesson урок, підготовлений loadLesson(): кроки з уже завантаженим кодом (source, fixSource),
@@ -127,7 +129,7 @@ export function renderStep(lesson, index, parent, onNext) {
     stopButton.hidden = false;
 
     // Твій код виконується в окремому потоці (Web Worker) — сторінку він не зламає
-    worker = new Worker(`runtime/worker.js?v=${WORKER_VERSION}`, { type: "module" });
+    worker = new Worker(`runtime/worker.js${VERSION}`, { type: "module" });
     const limitSeconds = mode === "real" ? 180 : 30;
     timeout = setTimeout(() => {
       stopWorker();

@@ -34,6 +34,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run lab:build
+      # Версія в адресах модулів: після деплою браузер не візьме зі свого кешу старі файли
+      - run: node scripts/stamp-version.mjs lab/public ${GITHUB_SHA::7}
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
