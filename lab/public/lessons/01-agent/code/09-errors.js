@@ -1,0 +1,41 @@
+// Дістає з відповіді моделі її прохання запустити інструмент (як у кроці 3)
+function getRequests(reply) {
+  return reply.content.filter((part) => part.type === "tool_use");
+}
+
+// Запускає інструменти і повертає, що вони видали (як у кроці 4)
+async function runTools(requests) {
+  const results = [];
+  for (const request of requests) {
+    const result = await tools[request.name].run(request.input);
+    results.push({
+      type: "tool_result",
+      tool_use_id: request.id,
+      content: result,
+    });
+  }
+  return results;
+}
+
+const messages = [
+  { role: "user", content: "Прочитай мій список справ у notes/todo.txt" },
+];
+const toolList = [tools.list_files.def, tools.read_file.def];
+
+const instructions =
+  "Ти помічник користувача. Його задачі й нотатки лежать у файлах " +
+  "робочої папки. Якщо інструмент повернув помилку — не здавайся: " +
+  "подивись список файлів і знайди схожий. Коротко, українською.";
+
+// Щонайбільше 5 спроб, як у кроці 7
+for (let turn = 1; turn <= 5; turn++) {
+  const reply = await model({ system: instructions, messages, tools: toolList });
+  messages.push({ role: "assistant", content: reply.content });
+
+  // Модель нічого не просить — значить, вона вже відповіла. Виходимо
+  const requests = getRequests(reply);
+  if (requests.length === 0) break;
+
+  const results = await runTools(requests);
+  messages.push({ role: "user", content: results });
+}

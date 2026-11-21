@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tracker": {
+      "command": "node",
+      "args": ["--import", "tsx", "../src/p2/tracker-mcp.ts"]
+    }
+  }
+}

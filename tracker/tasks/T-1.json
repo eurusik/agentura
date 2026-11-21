@@ -1,0 +1,7 @@
+{
+  "id": "T-1",
+  "title": "Додати утиліту slugify для URL товарів",
+  "description": "slugify('Кава Ефіопія 250 г') має дати 'kava-efiopiia-250-h'. Транслітерація за спрощеною таблицею, нижній регістр, пробіли → дефіс.",
+  "labels": ["mini-agent", "utils"],
+  "status": "todo"
+}

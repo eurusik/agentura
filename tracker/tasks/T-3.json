@@ -1,0 +1,7 @@
+{
+  "id": "T-3",
+  "title": "Оновити README",
+  "description": "Описати всі утиліти в README.",
+  "labels": ["docs"],
+  "status": "todo"
+}

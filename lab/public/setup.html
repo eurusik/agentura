@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Як підключити модель — Агентура</title>
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="home" class="setup-page">
+      <a class="back" href="./">← Усі уроки</a>
+      <h1>Як підключити модель</h1>
+      <p class="goal">
+        Це необов'язково: усі уроки працюють на заготовлених відповідях. Але з живою моделлю цікавіше
+        подивитись, як той самий код керує нею.
+      </p>
+      <p id="status" class="muted small">Перевіряю, чи вже щось підключено…</p>
+
+      <h2>Варіант 1. Ollama: локально і безкоштовно</h2>
+      <p>
+        Модель працює прямо на твоєму комп'ютері, ключ не потрібен. Потрібно близько 16 ГБ оперативної пам'яті
+        і 5 ГБ на диску.
+      </p>
+      <ol class="howto">
+        <li>
+          <b>Постав Ollama.</b> Програма для macOS, Windows і Linux є на
+          <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a>. На
+          macOS можна через Homebrew:
+          <pre>
+brew install ollama
+brew services start ollama</pre>
+        </li>
+        <li>
+          <b>Завантаж модель</b> (близько 5 ГБ, один раз):
+          <pre>ollama pull qwen3:8b</pre>
+        </li>
+        <li>
+          <b>Перевір, що вона є:</b>
+          <pre>ollama list</pre>
+          У списку має бути <code>qwen3:8b</code>.
+        </li>
+        <li>
+          <b>Натисни «Перевірити ще раз»</b> нижче або під кодом в уроці. Перезапускати лабораторію не треба.
+        </li>
+      </ol>
+      <p>
+        Перша відповідь може йти 10–30 секунд, поки модель завантажується в пам'ять, далі буде кілька секунд.
+        Чому
+        <code>qwen3:8b</code>: я пробував кілька маленьких моделей на завданнях з уроку, і вона доводила
+        задачу до кінця. Менші часто кидали її на півдорозі.
+      </p>
+
+      <h2>Варіант 2. Хмарний API з безкоштовним лімітом</h2>
+      <p>Підходить, якщо комп'ютер слабкий. OpenRouter, Groq і Gemini мають безкоштовні ліміти.</p>
+      <ol class="howto">
+        <li>Зареєструйся на сайті сервісу і створи API-ключ.</li>
+        <li>
+          У папці проєкту скопіюй файл з налаштуваннями (на Windows: <code>copy .env.example .env</code>):
+          <pre>cp .env.example .env</pre>
+        </li>
+        <li>
+          Відкрий <code>.env</code>, розкоментуй блок свого сервісу і впиши ключ (<code>OPENAI_API_KEY</code>)
+          і назву моделі (<code>OPENAI_MODEL</code>) з сайту сервісу. Обирай модель, яка вміє працювати з
+          інструментами (tool calling).
+        </li>
+        <li>
+          Перезапусти лабораторію: <code>Ctrl+C</code> у терміналі, потім знову <code>npm run lab</code>.
+        </li>
+      </ol>
+
+      <h2>Варіант 3. Claude від Anthropic (платно)</h2>
+      <p>
+        Найрозумніша з трьох, проходить усі кроки без пригод. Урок коштує частки цента. У
+        <code>.env</code> розкоментуй <code>ANTHROPIC_API_KEY=</code>, впиши свій ключ з
+        <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> і
+        перезапусти лабораторію.
+      </p>
+      <p class="muted small">
+        Якщо заповнено кілька варіантів, лабораторія бере перший у такому порядку: Claude → хмарний API →
+        Ollama. Файл
+        <code>.env</code> у git не потрапляє, а ключі бачить тільки сервер лабораторії на твоєму комп'ютері.
+      </p>
+
+      <h2>Якщо не працює</h2>
+      <dl class="faq">
+        <dt>«Справжня модель · не підключена», хоча Ollama стоїть</dt>
+        <dd>
+          Перевір, що Ollama запущена: <code>ollama list</code> має показати список без помилок. На macOS:
+          <code>brew services start ollama</code> або відкрий програму Ollama.
+        </dd>
+        <dt>«Ollama запущена, але моделей у ній немає»</dt>
+        <dd><code>ollama pull qwen3:8b</code></dd>
+        <dt>«У .env бракує: …» або «OPENAI_BASE_URL має бути повною адресою»</dt>
+        <dd>
+          Заповни всі три рядки <code>OPENAI_…</code>, адреса має починатися з <code>https://</code>.
+          Перезапусти лабораторію.
+        </dd>
+        <dt>Модель «тупить»: зупиняється на півдорозі або просить не той інструмент</dt>
+        <dd>
+          Для маленьких моделей це нормально, тому в коді агента і є обмеження спроб і перевірки. Спробуй ще
+          раз або підключи більшу модель.
+        </dd>
+      </dl>
+
+      <p><button class="primary" id="recheck">Перевірити ще раз</button></p>
+    </main>
+    <script type="module">
+      import { loadModelStatus, realModel } from "./app/model-status.js";
+      import { esc } from "./app/util.js";
+
+      const status = document.getElementById("status");
+      async function check() {
+        status.textContent = "Перевіряю…";
+        await loadModelStatus();
+        if (realModel.ready) {
+          status.innerHTML = `Підключено: <b>${esc(realModel.label)}</b> · <code>${esc(realModel.model)}</code>. Можна повертатись до уроків.`;
+          status.className = "ok-line";
+        } else {
+          status.innerHTML = realModel.problem
+            ? `Поки не підключено. ${esc(realModel.problem)}`
+            : "Поки нічого не підключено.";
+          status.className = "muted small";
+        }
+      }
+      document.getElementById("recheck").onclick = check;
+      check();
+    </script>
+  </body>
+</html>
